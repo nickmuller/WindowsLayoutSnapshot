@@ -1,6 +1,8 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -22,6 +24,7 @@ namespace WindowsLayoutSnapshot {
         internal static ContextMenuStrip me { get; set; }
 
         public TrayIconForm() {
+
             InitializeComponent();
             Visible = false;
 
@@ -31,7 +34,12 @@ namespace WindowsLayoutSnapshot {
 
             me = trayMenu;
 
-            TakeSnapshot(false);
+            if(WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations != null && WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations.Length > 0)
+            {
+                //TODO add snapshot to m_snapshots
+            }
+
+            //TakeSnapshot(false);
         }
 
         private void snapshotTimer_Tick(object sender, EventArgs e) {
@@ -42,8 +50,31 @@ namespace WindowsLayoutSnapshot {
             TakeSnapshot(true);
         }
 
+        public static string ShowDialog(string text, string caption)
+        {
+            Form prompt = new Form()
+            {
+                Width = 500,
+                Height = 150,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                Text = caption,
+                StartPosition = FormStartPosition.CenterScreen
+            };
+            Label textLabel = new Label() { Left = 50, Top = 20, Text = text };
+            TextBox textBox = new TextBox() { Left = 50, Top = 50, Width = 400 };
+            Button confirmation = new Button() { Text = "Ok", Left = 350, Width = 100, Top = 80, DialogResult = DialogResult.OK };
+            confirmation.Click += (sender, e) => { prompt.Close(); };
+            prompt.Controls.Add(textBox);
+            prompt.Controls.Add(confirmation);
+            prompt.Controls.Add(textLabel);
+            prompt.AcceptButton = confirmation;
+
+            return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+        }
+
         private void TakeSnapshot(bool userInitiated) {
-            m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated));
+            var snapshotName = ShowDialog("Snapshot name :", "Please insert a snapshot name !");
+            m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName));
             UpdateRestoreChoicesInMenu();
         }
 
@@ -99,6 +130,18 @@ namespace WindowsLayoutSnapshot {
         private void UpdateRestoreChoicesInMenu() {
             // construct the new list of menu items, then populate them
             // this function is idempotent
+
+            List<string> dataToSave = new List<string>();
+
+            foreach (var snapshot in m_snapshots)
+            {
+                dataToSave.Add(snapshot.getJSON());
+            }
+
+            var stringToSave = JsonConvert.SerializeObject(dataToSave);
+
+            WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations = stringToSave;
+            WindowsLayoutSnapshot.Properties.Settings.Default.Save();
 
             var snapshotsOldestFirst = new List<Snapshot>(CondenseSnapshots(m_snapshots, 20));
             var newMenuItems = new List<ToolStripItem>();
@@ -196,7 +239,7 @@ namespace WindowsLayoutSnapshot {
             // find maximally different snapshots
             // snapshots is ordered by time, ascending
 
-            // todo:
+            // not todo:
             // consider these factors (in rough order of importance):
             //   * number of total desktop pixels in snapshot (i.e. different monitor configs like two displays vs laptop display only etc)
             //   * snapshot age
@@ -206,7 +249,7 @@ namespace WindowsLayoutSnapshot {
             // for now, a poor man's version:
 
             // remove automatically-taken snapshots > 3 days old, or manual snapshots > 5 days old
-            var y = new List<Snapshot>();
+            /*var y = new List<Snapshot>();
             y.AddRange(snapshots);
             while (y.Count > maxNumSnapshots) {
                 for (int i = 0; i < y.Count; i++) {
@@ -240,9 +283,9 @@ namespace WindowsLayoutSnapshot {
                     }
                 }
                 y.RemoveAt(ixMostAdjacentNeighbors);
-            }
+            }*/
 
-            return y;
+            return snapshots;
         }
 
         private void SnapshotMousedOver(object sender, EventArgs e) {
@@ -272,7 +315,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {
-            m_menuShownSnapshot = Snapshot.TakeSnapshot(false);
+            //m_menuShownSnapshot = Snapshot.TakeSnapshot(false);
             //justNowToolStripMenuItem.Tag = m_menuShownSnapshot;
 
             // the context menu won't show by default on left clicks.  we're going to have to ask it to show up.

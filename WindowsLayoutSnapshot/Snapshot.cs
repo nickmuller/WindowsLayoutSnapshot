@@ -30,8 +30,33 @@ namespace WindowsLayoutSnapshot {
             NumMonitors = pixels.Count;
         }
 
+        private Snapshot(bool userInitiated, string snapshotName)
+        {
+#if DEBUG
+            Debug.WriteLine("*** NEW SNAPSHOT ***");
+#endif
+
+            this.snapshotName = snapshotName;
+
+            EnumWindows(EvalWindow, 0);
+
+            TimeTaken = DateTime.UtcNow;
+            UserInitiated = userInitiated;
+
+            var pixels = new List<long>();
+            foreach (var screen in Screen.AllScreens)
+                pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
+            MonitorPixelCounts = pixels.ToArray();
+            NumMonitors = pixels.Count;
+        }
+
         internal static Snapshot TakeSnapshot(bool userInitiated) {
             return new Snapshot(userInitiated);
+        }
+
+        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName)
+        {
+            return new Snapshot(userInitiated, snapshotName);
         }
 
         private bool EvalWindow(int hwndInt, int lParam) {
@@ -54,7 +79,6 @@ namespace WindowsLayoutSnapshot {
             Debug.WriteLine(hwnd + " " + win.position + " " + outText);
 
 
-            this.getJSON();
 #endif
 
             return true;
@@ -62,12 +86,13 @@ namespace WindowsLayoutSnapshot {
 
         internal DateTime TimeTaken { get; private set; }
         internal bool UserInitiated { get; private set; }
+        internal string snapshotName { get; private set; }
         internal long[] MonitorPixelCounts { get; private set; }
         internal int NumMonitors { get; private set; }
 
         public string GetDisplayString() {
             DateTime dt = TimeTaken.ToLocalTime();
-            return dt.ToString("M") + ", " + dt.ToString("T");
+            return snapshotName != null ? snapshotName : dt.ToString("M") + ", " + dt.ToString("T");
         }
 
         internal TimeSpan Age {
@@ -101,9 +126,14 @@ namespace WindowsLayoutSnapshot {
                 // make sure window will be inside a monitor
                 Rectangle newpos = GetRectInsideNearestMonitor(win);
 
+                //TODO Check if every m_infos are started
+                //If PID is not existing try to start process
+
                 if (!SetWindowPos(placement.Key, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
                     Debug.WriteLine("Can't move window " + placement.Key + ": " + GetLastError());
             }
+
+            //TODO While all process are not started wait before reorder
 
             // now update the z-orders
             m_windowsBackToTop = m_windowsBackToTop.FindAll(IsWindowVisible);
@@ -163,11 +193,17 @@ namespace WindowsLayoutSnapshot {
             return true;
         }
 
-        private class WinInfo {
+        public class WinInfo {
             public Rectangle position; // real window border, we use this to move it
             public Rectangle visible; // visible window borders, we use this to force inside a screen
             public string title;
             public string processPath;
+        }
+
+        public class SnapshotJSON
+        {
+            public string name; 
+            public Dictionary<IntPtr, WinInfo> processList;
         }
 
         private static WinInfo GetWindowInfo(IntPtr hwnd) {
@@ -202,14 +238,15 @@ namespace WindowsLayoutSnapshot {
             return win;
         }
 
-        public void getJSON() 
+        public string getJSON() 
         {
             string jsonString = JsonConvert.SerializeObject(this.m_infos);
 
-            Console.WriteLine(jsonString);
+            SnapshotJSON snapshotJSON = new SnapshotJSON();
+            snapshotJSON.name = this.GetDisplayString();
+            snapshotJSON.processList = this.m_infos;
 
-
-         //   return output;
+            return JsonConvert.SerializeObject(snapshotJSON);
         }
     }
 }
