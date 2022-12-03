@@ -14,6 +14,7 @@ namespace WindowsLayoutSnapshot {
 
         private Timer m_snapshotTimer = new Timer();
         private List<Snapshot> m_snapshots = new List<Snapshot>();
+        //LeStudioCurrentSong.Properties.Settings.Default.token = this.token.Text;
         private Snapshot m_menuShownSnapshot = null;
         private Padding? m_originalTrayMenuArrowPadding = null;
         private Padding? m_originalTrayMenuTextPadding = null;
@@ -26,7 +27,7 @@ namespace WindowsLayoutSnapshot {
 
             m_snapshotTimer.Interval = (int)TimeSpan.FromMinutes(20).TotalMilliseconds;
             m_snapshotTimer.Tick += snapshotTimer_Tick;
-            m_snapshotTimer.Enabled = true;
+            m_snapshotTimer.Enabled = false;
 
             me = trayMenu;
 
@@ -51,13 +52,13 @@ namespace WindowsLayoutSnapshot {
             UpdateRestoreChoicesInMenu();
         }
 
-        private void justNowToolStripMenuItem_Click(object sender, EventArgs e) {
-            m_menuShownSnapshot.Restore(null, EventArgs.Empty);
-        }
+        //private void justNowToolStripMenuItem_Click(object sender, EventArgs e) {
+        //    m_menuShownSnapshot.Restore(null, EventArgs.Empty);
+        //}
 
-        private void justNowToolStripMenuItem_MouseEnter(object sender, EventArgs e) {
-            SnapshotMousedOver(sender, e);
-        }
+        // void justNowToolStripMenuItem_MouseEnter(object sender, EventArgs e) {
+        //    SnapshotMousedOver(sender, e);
+        //}
 
         private class RightImageToolStripMenuItem : ToolStripMenuItem {
             public RightImageToolStripMenuItem(string text)
@@ -124,7 +125,7 @@ namespace WindowsLayoutSnapshot {
                 var menuItem = new RightImageToolStripMenuItem(snapshot.GetDisplayString());
                 menuItem.Tag = snapshot;
                 menuItem.Click += snapshot.Restore;
-                menuItem.MouseEnter += SnapshotMousedOver;
+                //menuItem.MouseEnter += SnapshotMousedOver;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
@@ -141,7 +142,7 @@ namespace WindowsLayoutSnapshot {
                 newMenuItems.Add(menuItem);
             }
 
-            newMenuItems.Add(justNowToolStripMenuItem);
+            //newMenuItems.Add(justNowToolStripMenuItem);
             newMenuItems.Add(snapshotListStartLine);
             newMenuItems.Add(clearSnapshotsToolStripMenuItem);
             newMenuItems.Add(snapshotToolStripMenuItem);
@@ -272,7 +273,7 @@ namespace WindowsLayoutSnapshot {
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {
             m_menuShownSnapshot = Snapshot.TakeSnapshot(false);
-            justNowToolStripMenuItem.Tag = m_menuShownSnapshot;
+            //justNowToolStripMenuItem.Tag = m_menuShownSnapshot;
 
             // the context menu won't show by default on left clicks.  we're going to have to ask it to show up.
             if (e.Button == MouseButtons.Left) {

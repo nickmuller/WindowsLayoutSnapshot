@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Diagnostics;
 using static WindowsLayoutSnapshot.Native;
+using Newtonsoft.Json;
 
 namespace WindowsLayoutSnapshot {
 
@@ -51,6 +52,9 @@ namespace WindowsLayoutSnapshot {
             System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
             int a = GetWindowText(hwnd, outText, outText.Capacity);
             Debug.WriteLine(hwnd + " " + win.position + " " + outText);
+
+
+            this.getJSON();
 #endif
 
             return true;
@@ -162,6 +166,8 @@ namespace WindowsLayoutSnapshot {
         private class WinInfo {
             public Rectangle position; // real window border, we use this to move it
             public Rectangle visible; // visible window borders, we use this to force inside a screen
+            public string title;
+            public string processPath;
         }
 
         private static WinInfo GetWindowInfo(IntPtr hwnd) {
@@ -173,8 +179,37 @@ namespace WindowsLayoutSnapshot {
             if (Environment.OSVersion.Version.Major >= 6)
                 if (DwmGetWindowAttribute(hwnd, 9 /*DwmwaExtendedFrameBounds*/, out pos, Marshal.SizeOf(typeof(Native.RECT))) == 0)
                     win.visible = pos.ToRectangle();
+
+            // Get process title
+            int textLength = 256;
+            System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
+            int a = GetWindowText(hwnd, outText, outText.Capacity);
+            win.title = outText.ToString();
+
+            // Get process path
+            try
+            {
+                uint pid = 0;
+                GetWindowThreadProcessId(hwnd, out pid);
+                Process proc = Process.GetProcessById((int)pid); //Gets the process by ID.
+                win.processPath = proc.MainModule.FileName.ToString();    //Returns the path. 
+            }
+            catch
+            {
+                win.processPath = null;
+            }
+
             return win;
         }
 
+        public void getJSON() 
+        {
+            string jsonString = JsonConvert.SerializeObject(this.m_infos);
+
+            Console.WriteLine(jsonString);
+
+
+         //   return output;
+        }
     }
 }

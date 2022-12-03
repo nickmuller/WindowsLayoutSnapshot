@@ -30,7 +30,7 @@ namespace WindowsLayoutSnapshot {
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.snapshotListEndLine = new System.Windows.Forms.ToolStripSeparator();
-            this.justNowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            //this.justNowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.snapshotListStartLine = new System.Windows.Forms.ToolStripSeparator();
             this.clearSnapshotsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.snapshotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -51,7 +51,7 @@ namespace WindowsLayoutSnapshot {
             this.quitToolStripMenuItem,
             this.aboutToolStripMenuItem,
             this.snapshotListEndLine,
-            this.justNowToolStripMenuItem,
+            //this.justNowToolStripMenuItem,
             this.snapshotListStartLine,
             this.clearSnapshotsToolStripMenuItem,
             this.snapshotToolStripMenuItem});
@@ -79,11 +79,11 @@ namespace WindowsLayoutSnapshot {
             // 
             // justNowToolStripMenuItem
             // 
-            this.justNowToolStripMenuItem.Name = "justNowToolStripMenuItem";
-            this.justNowToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.justNowToolStripMenuItem.Text = "(Just now)";
-            this.justNowToolStripMenuItem.Click += new System.EventHandler(this.justNowToolStripMenuItem_Click);
-            this.justNowToolStripMenuItem.MouseEnter += new System.EventHandler(this.justNowToolStripMenuItem_MouseEnter);
+            //this.justNowToolStripMenuItem.Name = "justNowToolStripMenuItem";
+            //this.justNowToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            //this.justNowToolStripMenuItem.Text = "(Just now)";
+            //this.justNowToolStripMenuItem.Click += new System.EventHandler(this.justNowToolStripMenuItem_Click);
+            //this.justNowToolStripMenuItem.MouseEnter += new System.EventHandler(this.justNowToolStripMenuItem_MouseEnter);
             // 
             // snapshotListStartLine
             // 
@@ -128,7 +128,7 @@ namespace WindowsLayoutSnapshot {
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator snapshotListEndLine;
         private System.Windows.Forms.ToolStripMenuItem clearSnapshotsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem justNowToolStripMenuItem;
+        //private System.Windows.Forms.ToolStripMenuItem justNowToolStripMenuItem;
     }
 }
 

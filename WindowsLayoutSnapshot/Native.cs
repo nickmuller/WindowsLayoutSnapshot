@@ -115,6 +115,20 @@ namespace WindowsLayoutSnapshot {
         [DllImport("user32.dll")]
         static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern int GetWindowTextLength(IntPtr hWnd);
+
+        public static string GetWindowTitle(IntPtr hWnd)
+        {
+            var length = GetWindowTextLength(hWnd) + 1;
+            var title = new StringBuilder(length);
+            GetWindowText(hWnd, title, length);
+            return title.ToString();
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT {
             public int X;
