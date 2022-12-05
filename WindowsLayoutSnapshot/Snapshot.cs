@@ -149,27 +149,66 @@ namespace WindowsLayoutSnapshot {
         internal void Restore(object sender, EventArgs e) { // ignore extra params
             // first, restore the window rectangles and normal/maximized/minimized states
             foreach (var placement in m_infos) {
-                // this might error out if the window no longer exists
-                WinInfo win = placement.Value;
 
-                // make sure window will be inside a monitor
-                Rectangle newpos = GetRectInsideNearestMonitor(win);
+                var processId = placement.Key;
+                var processPath = placement.Value.processPath;
 
-                foreach (var item in m_infos)
+                //TODO If PID is not existing try to start process
+                try
                 {
-                    var processId = item.Key;
-                    var processPath = item.Value.processPath;
+                    uint pid = 0;
+                    GetWindowThreadProcessId((IntPtr)processId, out pid);
+                    Process proc = Process.GetProcessById((int)pid);
+                    proc.MainModule.FileName.ToString();
+                }
+                catch
+                {
+                    try
+                    {
+                        var processFound = false;
 
-                    //TODO If PID is not existing try to start process
+                        // Check if process path is already started
+                        foreach (var item in Process.GetProcesses())
+                        {
+                           try
+                            {
+                                if (item.MainModule.FileName.ToString() == processPath && processFound == false)
+                                {
+                                    processId = item.Id;
+                                    processFound = true;
+                                    break;
+                                }
+                            }
+                            catch
+                            {
+                                // Don't trigger an error if access denied
+                            }
+                        }
 
+                        if (processFound == false)
+                        {
+                            // Start process because app can't be started
+                            processId = Process.Start(processPath).Id;
+                            System.Threading.Thread.Sleep(3 * 1000);
+                        }
+                    }
+                    catch (Exception errorToCheck)
+                    {
+                        Debug.WriteLine(errorToCheck);
+                        // Don't trigger an error if app is not existing anymore
+                    }
                 }
 
-                if (!SetWindowPos((IntPtr)placement.Key, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
+
+                //TODO Fix issue with process who can't be moved by process Id
+
+                // make sure window will be inside a monitor
+                Rectangle newpos = GetRectInsideNearestMonitor(placement.Value);
+                Debug.WriteLine(newpos);
+                if (!SetWindowPos((IntPtr)processId, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
                     Debug.WriteLine("Can't move window " + placement.Key + ": " + GetLastError());
             }
 
-            //While all process are not started wait before reorder | 3 seconds
-            System.Threading.Thread.Sleep(3 * 1000);
 
             // now update the z-orders
             m_windowsBackToTop = m_windowsBackToTop.FindAll(IsWindowVisible);
