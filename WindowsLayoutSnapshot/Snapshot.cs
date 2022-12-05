@@ -11,7 +11,7 @@ namespace WindowsLayoutSnapshot {
 
     internal class Snapshot {
 
-        private Dictionary<IntPtr, WinInfo> m_infos = new Dictionary<IntPtr, WinInfo>();
+        private Dictionary<int, WinInfo> m_infos = new Dictionary<int, WinInfo>();
         private List<IntPtr> m_windowsBackToTop = new List<IntPtr>();
 
         private Snapshot(bool userInitiated) {
@@ -50,6 +50,32 @@ namespace WindowsLayoutSnapshot {
             NumMonitors = pixels.Count;
         }
 
+        private Snapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
+        {
+#if DEBUG
+            Debug.WriteLine("*** RESTORE SNAPSHOT ***");
+#endif
+
+            this.snapshotName = snapshotName;
+
+            //EnumWindows(EvalWindow, 0);
+
+            //m_infos = processList;
+            foreach (var item in processList)
+            {
+                m_infos.Add(item.Key, item.Value);
+            }
+
+            TimeTaken = DateTime.UtcNow;
+            UserInitiated = userInitiated;
+
+            var pixels = new List<long>();
+            foreach (var screen in Screen.AllScreens)
+                pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
+            MonitorPixelCounts = pixels.ToArray();
+            NumMonitors = pixels.Count;
+        }
+
         internal static Snapshot TakeSnapshot(bool userInitiated) {
             return new Snapshot(userInitiated);
         }
@@ -57,6 +83,11 @@ namespace WindowsLayoutSnapshot {
         internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName)
         {
             return new Snapshot(userInitiated, snapshotName);
+        }
+
+        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo>  processList)
+        {
+            return new Snapshot(userInitiated, snapshotName, processList);
         }
 
         private bool EvalWindow(int hwndInt, int lParam) {
@@ -69,7 +100,7 @@ namespace WindowsLayoutSnapshot {
             m_windowsBackToTop.Add(hwnd);
 
             WinInfo win = GetWindowInfo(hwnd);
-            m_infos.Add(hwnd, win);
+            m_infos.Add((int)hwnd.ToInt64(), win);
 
 #if DEBUG
             // For debugging purpose, output window title with handle
@@ -77,8 +108,6 @@ namespace WindowsLayoutSnapshot {
             System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
             int a = GetWindowText(hwnd, outText, outText.Capacity);
             Debug.WriteLine(hwnd + " " + win.position + " " + outText);
-
-
 #endif
 
             return true;
@@ -126,14 +155,21 @@ namespace WindowsLayoutSnapshot {
                 // make sure window will be inside a monitor
                 Rectangle newpos = GetRectInsideNearestMonitor(win);
 
-                //TODO Check if every m_infos are started
-                //If PID is not existing try to start process
+                foreach (var item in m_infos)
+                {
+                    var processId = item.Key;
+                    var processPath = item.Value.processPath;
 
-                if (!SetWindowPos(placement.Key, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
+                    //TODO If PID is not existing try to start process
+
+                }
+
+                if (!SetWindowPos((IntPtr)placement.Key, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
                     Debug.WriteLine("Can't move window " + placement.Key + ": " + GetLastError());
             }
 
-            //TODO While all process are not started wait before reorder
+            //While all process are not started wait before reorder | 3 seconds
+            System.Threading.Thread.Sleep(3 * 1000);
 
             // now update the z-orders
             m_windowsBackToTop = m_windowsBackToTop.FindAll(IsWindowVisible);
@@ -203,7 +239,13 @@ namespace WindowsLayoutSnapshot {
         public class SnapshotJSON
         {
             public string name; 
-            public Dictionary<IntPtr, WinInfo> processList;
+            public Dictionary<int, WinInfo> processList;
+        }
+
+        public class SnapshotBackJSON
+        {
+            public string name;
+            public Dictionary<int, WinInfo> processList;
         }
 
         private static WinInfo GetWindowInfo(IntPtr hwnd) {

@@ -9,6 +9,7 @@ using System.Drawing.Imaging;
 using System.Reflection;
 using System.Windows.Forms;
 using static WindowsLayoutSnapshot.Native;
+using static WindowsLayoutSnapshot.Snapshot;
 
 namespace WindowsLayoutSnapshot {
 
@@ -33,10 +34,17 @@ namespace WindowsLayoutSnapshot {
             m_snapshotTimer.Enabled = false;
 
             me = trayMenu;
-
-            if(WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations != null && WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations.Length > 0)
+            if (WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations != null && WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations.Length > 0)
             {
                 //TODO add snapshot to m_snapshots
+                Debug.WriteLine("initial config");
+                var jsonOBJ = JsonConvert.DeserializeObject<string[]>(WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations);
+
+                foreach (var str in jsonOBJ)
+                {
+                    var item = JsonConvert.DeserializeObject<SnapshotBackJSON>(str);
+                    TakeSnapshot(true, item.name, item.processList);
+                }
             }
 
             //TakeSnapshot(false);
@@ -75,6 +83,12 @@ namespace WindowsLayoutSnapshot {
         private void TakeSnapshot(bool userInitiated) {
             var snapshotName = ShowDialog("Snapshot name :", "Please insert a snapshot name !");
             m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName));
+            UpdateRestoreChoicesInMenu();
+        }
+
+        private void TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
+        {
+            m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName, processList));
             UpdateRestoreChoicesInMenu();
         }
 
