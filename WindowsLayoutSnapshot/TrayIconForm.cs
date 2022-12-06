@@ -82,8 +82,12 @@ namespace WindowsLayoutSnapshot {
 
         private void TakeSnapshot(bool userInitiated) {
             var snapshotName = ShowDialog("Snapshot name :", "Please insert a snapshot name !");
-            m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName));
-            UpdateRestoreChoicesInMenu();
+
+            if(snapshotName.Length > 0)
+            {
+                m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName));
+                UpdateRestoreChoicesInMenu();
+            }
         }
 
         private void TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
@@ -154,6 +158,8 @@ namespace WindowsLayoutSnapshot {
 
             var stringToSave = JsonConvert.SerializeObject(dataToSave);
 
+            Debug.WriteLine(stringToSave);
+
             WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations = stringToSave;
             WindowsLayoutSnapshot.Properties.Settings.Default.Save();
 
@@ -200,7 +206,10 @@ namespace WindowsLayoutSnapshot {
             }
 
             //newMenuItems.Add(justNowToolStripMenuItem);
-            newMenuItems.Add(snapshotListStartLine);
+            if(m_snapshots.Count > 0)
+            {
+                newMenuItems.Add(snapshotListStartLine);
+            }
             newMenuItems.Add(clearSnapshotsToolStripMenuItem);
             newMenuItems.Add(snapshotToolStripMenuItem);
 

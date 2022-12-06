@@ -174,9 +174,28 @@ namespace WindowsLayoutSnapshot {
                             {
                                 if (item.MainModule.FileName.ToString() == processPath && processFound == false)
                                 {
-                                    processId = item.Id;
-                                    processFound = true;
-                                    break;
+                                    Debug.WriteLine("Existing process");
+                                    int count = 0;
+                                    while (count < 6)
+                                    {
+                                        var process = item;
+                                        process.Refresh();
+                                        processId = (int)process.MainWindowHandle.ToInt64();
+                                        if(processId == 0)
+                                        {
+                                            System.Threading.Thread.Sleep(250);
+                                            Debug.WriteLine("Count =" + count);
+                                            count++;
+                                        }else
+                                        {
+                                            processFound = true;
+                                            count = 6;
+                                        }
+                                    }
+                                    if (processFound)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                             catch
@@ -187,9 +206,26 @@ namespace WindowsLayoutSnapshot {
 
                         if (processFound == false)
                         {
+                            Debug.WriteLine("New process");
                             // Start process because app can't be started
-                            processId = Process.Start(processPath).Id;
-                            System.Threading.Thread.Sleep(3 * 1000);
+                            var process = Process.Start(processPath);
+                            int count = 0;
+                            while (count < 12)
+                            {
+                                process.Refresh();
+                                processId = (int)process.MainWindowHandle.ToInt64();
+                                if (processId == 0)
+                                {
+                                    System.Threading.Thread.Sleep(250);
+                                    Debug.WriteLine("New Count =" + count);
+                                    count++;
+                                }
+                                else
+                                {
+                                    processFound = true;
+                                    count = 12;
+                                }
+                            }
                         }
                     }
                     catch (Exception errorToCheck)
@@ -199,14 +235,27 @@ namespace WindowsLayoutSnapshot {
                     }
                 }
 
-
                 //TODO Fix issue with process who can't be moved by process Id
 
                 // make sure window will be inside a monitor
                 Rectangle newpos = GetRectInsideNearestMonitor(placement.Value);
                 Debug.WriteLine(newpos);
-                if (!SetWindowPos((IntPtr)processId, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
-                    Debug.WriteLine("Can't move window " + placement.Key + ": " + GetLastError());
+                try
+                {
+                    if (!SetWindowPos((IntPtr)processId, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
+                    {
+                        var err = GetLastError();
+                        Debug.WriteLine("Can't move window " + placement.Key + ": Error" + GetLastError());
+                    }else
+                    {
+                        Debug.WriteLine(processId);
+                    }
+                }
+                catch(Exception errrr)
+                {
+                    Debug.WriteLine(placement.Key);
+                    Debug.WriteLine(errrr);
+                }
             }
 
 
