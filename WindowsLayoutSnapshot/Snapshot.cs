@@ -7,7 +7,8 @@ using System.Diagnostics;
 using static WindowsLayoutSnapshot.Native;
 using Newtonsoft.Json;
 
-namespace WindowsLayoutSnapshot {
+namespace WindowsLayoutSnapshot
+{
 
     internal class Snapshot {
 
@@ -147,7 +148,8 @@ namespace WindowsLayoutSnapshot {
         }
 
         internal void Restore(object sender, EventArgs e) { // ignore extra params
-            // first, restore the window rectangles and normal/maximized/minimized states
+                                                            // first, restore the window rectangles and normal/maximized/minimized states
+            MessageBox.Show("Restore in progress. Please DON'T DO ANYTHING before restore is complete.", "Restore Snapshot");
             foreach (var placement in m_infos) {
 
                 var processId = placement.Key;
@@ -267,6 +269,7 @@ namespace WindowsLayoutSnapshot {
                     0, 0, 0, 0, DeferWindowPosCommands.SWP_NOMOVE | DeferWindowPosCommands.SWP_NOSIZE | DeferWindowPosCommands.SWP_NOACTIVATE);
             }
             EndDeferWindowPos(positionStructure);
+            MessageBox.Show("Restore complete !", "Restore Snapshot");
         }
 
         private static Rectangle GetRectInsideNearestMonitor(WinInfo win) {
