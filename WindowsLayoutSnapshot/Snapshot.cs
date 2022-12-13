@@ -155,7 +155,7 @@ namespace WindowsLayoutSnapshot
                 var processId = placement.Key;
                 var processPath = placement.Value.processPath;
 
-                //TODO If PID is not existing try to start process
+                // If PID is not existing try to start process
                 try
                 {
                     uint pid = 0;
@@ -237,7 +237,6 @@ namespace WindowsLayoutSnapshot
                     }
                 }
 
-                //TODO Fix issue with process who can't be moved by process Id
 
                 // make sure window will be inside a monitor
                 Rectangle newpos = GetRectInsideNearestMonitor(placement.Value);

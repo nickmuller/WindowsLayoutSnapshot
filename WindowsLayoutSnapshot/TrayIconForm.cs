@@ -10,12 +10,15 @@ using System.Reflection;
 using System.Windows.Forms;
 using static WindowsLayoutSnapshot.Native;
 using static WindowsLayoutSnapshot.Snapshot;
+using System.Resources;
+using System.Globalization;
+using System.Threading;
 
 namespace WindowsLayoutSnapshot {
 
     public partial class TrayIconForm : Form {
 
-        private Timer m_snapshotTimer = new Timer();
+        private System.Windows.Forms.Timer m_snapshotTimer = new System.Windows.Forms.Timer();
         private List<Snapshot> m_snapshots = new List<Snapshot>();
         //LeStudioCurrentSong.Properties.Settings.Default.token = this.token.Text;
         private Snapshot m_menuShownSnapshot = null;
@@ -24,8 +27,28 @@ namespace WindowsLayoutSnapshot {
 
         internal static ContextMenuStrip me { get; set; }
 
-        public TrayIconForm() {
+        private static ResourceManager _rm;
 
+        static void LangHelper(string lang)
+        {
+            if (lang.Contains("fr"))
+            {
+                _rm = new ResourceManager("WindowsLayoutSnapshot.Language.fr", Assembly.GetExecutingAssembly());
+            }else
+            {
+                _rm = new ResourceManager("WindowsLayoutSnapshot.Language.en", Assembly.GetExecutingAssembly());
+            }
+        }
+
+        public static string getTrad(string name)
+        {
+            return _rm.GetString(name);
+        }
+
+
+        public TrayIconForm() {
+            Debug.WriteLine(Thread.CurrentThread.CurrentCulture.Name);
+            LangHelper(Thread.CurrentThread.CurrentCulture.Name);
             InitializeComponent();
             Visible = false;
 
@@ -36,7 +59,6 @@ namespace WindowsLayoutSnapshot {
             me = trayMenu;
             if (WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations != null && WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations.Length > 0)
             {
-                //TODO add snapshot to m_snapshots
                 Debug.WriteLine("initial config");
                 var jsonOBJ = JsonConvert.DeserializeObject<string[]>(WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations);
 
@@ -46,8 +68,6 @@ namespace WindowsLayoutSnapshot {
                     TakeSnapshot(true, item.name, item.processList);
                 }
             }
-
-            //TakeSnapshot(false);
         }
 
         private void snapshotTimer_Tick(object sender, EventArgs e) {
@@ -68,20 +88,34 @@ namespace WindowsLayoutSnapshot {
                 Text = caption,
                 StartPosition = FormStartPosition.CenterScreen
             };
-            Label textLabel = new Label() { Left = 50, Top = 20, Text = text };
+            Label textLabel = new Label() { Left = 50, Top = 20, Text = text, Width = 400 };
             TextBox textBox = new TextBox() { Left = 50, Top = 50, Width = 400 };
-            Button confirmation = new Button() { Text = "Ok", Left = 350, Width = 100, Top = 80, DialogResult = DialogResult.OK };
+            Button confirmation = new Button() { Text = "Ok", Left = 350, Width = 100, Top = 80, DialogResult = DialogResult.OK, Enabled = false };
             confirmation.Click += (sender, e) => { prompt.Close(); };
             prompt.Controls.Add(textBox);
             prompt.Controls.Add(confirmation);
             prompt.Controls.Add(textLabel);
             prompt.AcceptButton = confirmation;
 
+            void valueTextChanged(object sender, EventArgs e)
+            {
+                if(textBox.Text.Length >= 3)
+                {
+                    confirmation.Enabled = true;
+                }
+                else
+                {
+                    confirmation.Enabled = false;
+                }
+            }
+
+            textBox.TextChanged += valueTextChanged;
+
             return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
         }
 
         private void TakeSnapshot(bool userInitiated) {
-            var snapshotName = ShowDialog("Snapshot name :", "Please insert a snapshot name !");
+            var snapshotName = ShowDialog(getTrad("snapshotName"), getTrad("snapshotDescription"));
 
             if(snapshotName.Length > 0)
             {
@@ -334,7 +368,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) {
-            new About().Show();
+            System.Diagnostics.Process.Start("https://lestudio.qlaffont.com");
         }
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {
