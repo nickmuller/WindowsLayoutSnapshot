@@ -123,6 +123,9 @@
   <data name="clear" xml:space="preserve">
     <value>Supprimer toutes les sauvegardes</value>
   </data>
+  <data name="confirmDesc" xml:space="preserve">
+    <value>Restauration terminée !</value>
+  </data>
   <data name="quit" xml:space="preserve">
     <value>Quitter</value>
   </data>
@@ -134,5 +137,11 @@
   </data>
   <data name="snapshotName" xml:space="preserve">
     <value>Nom de la sauvegarde :</value>
+  </data>
+  <data name="warningDesc" xml:space="preserve">
+    <value>Restauration en cours. Veuillez NE RIEN FAIRE tant que la restauration n'est pas terminée !</value>
+  </data>
+  <data name="warningTitle" xml:space="preserve">
+    <value>Restauration</value>
   </data>
 </root>

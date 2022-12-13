@@ -123,6 +123,9 @@
   <data name="clear" xml:space="preserve">
     <value>Clear Snapshots</value>
   </data>
+  <data name="confirmDesc" xml:space="preserve">
+    <value>Restore completed !</value>
+  </data>
   <data name="quit" xml:space="preserve">
     <value>Quit</value>
   </data>
@@ -134,5 +137,11 @@
   </data>
   <data name="snapshotName" xml:space="preserve">
     <value>Snapshot name :</value>
+  </data>
+  <data name="warningDesc" xml:space="preserve">
+    <value>Restore in progress. Please DON'T DO ANYTHING before restore is complete !</value>
+  </data>
+  <data name="warningTitle" xml:space="preserve">
+    <value>Restore Snapshot</value>
   </data>
 </root>

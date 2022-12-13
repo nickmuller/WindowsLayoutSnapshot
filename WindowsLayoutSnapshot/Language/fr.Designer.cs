@@ -79,6 +79,15 @@ namespace WindowsLayoutSnapshot.Language {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Restauration terminée !.
+        /// </summary>
+        internal static string confirmDesc {
+            get {
+                return ResourceManager.GetString("confirmDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Quitter.
         /// </summary>
         internal static string quit {
@@ -111,6 +120,24 @@ namespace WindowsLayoutSnapshot.Language {
         internal static string snapshotName {
             get {
                 return ResourceManager.GetString("snapshotName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Restauration en cours. Veuillez NE RIEN FAIRE tant que la restauration n&apos;est pas terminée !.
+        /// </summary>
+        internal static string warningDesc {
+            get {
+                return ResourceManager.GetString("warningDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Restauration.
+        /// </summary>
+        internal static string warningTitle {
+            get {
+                return ResourceManager.GetString("warningTitle", resourceCulture);
             }
         }
     }

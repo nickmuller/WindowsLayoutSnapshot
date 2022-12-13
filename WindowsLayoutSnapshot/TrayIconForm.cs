@@ -221,8 +221,25 @@ namespace WindowsLayoutSnapshot {
             foreach (var snapshot in snapshotsOldestFirst) {
                 var menuItem = new RightImageToolStripMenuItem(snapshot.GetDisplayString());
                 menuItem.Tag = snapshot;
-                menuItem.Click += snapshot.Restore;
-                //menuItem.MouseEnter += SnapshotMousedOver;
+                void onRestore(object sender, EventArgs e)
+                { // ignore extra params
+                  // first, restore the window rectangles and normal/maximized/minimized states
+                    MessageBox.Show(getTrad("warningDesc"), getTrad("warningTitle"));
+
+                    snapshot.Restore(sender, e);
+                    
+                    MessageBox.Show(getTrad("confirmDesc"), getTrad("warningTitle"));
+                }
+                void onMouseDown(object sender, MouseEventArgs e)
+                {
+                    if(e.Button == MouseButtons.Right)
+                    {
+                        //Remove this snapshot
+                        m_snapshots.Remove(snapshot);
+                        UpdateRestoreChoicesInMenu();
+                    }
+                }
+                menuItem.MouseDown += onMouseDown;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
@@ -240,8 +257,11 @@ namespace WindowsLayoutSnapshot {
             }
 
             //newMenuItems.Add(justNowToolStripMenuItem);
-            if(m_snapshots.Count > 0)
+
+            this.snapshotListStartLine.Visible = m_snapshots.Count > 0;
+            if (m_snapshots.Count > 0)
             {
+
                 newMenuItems.Add(snapshotListStartLine);
             }
             newMenuItems.Add(clearSnapshotsToolStripMenuItem);

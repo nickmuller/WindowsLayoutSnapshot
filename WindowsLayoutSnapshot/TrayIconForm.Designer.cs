@@ -89,6 +89,7 @@ namespace WindowsLayoutSnapshot {
             // 
             this.snapshotListStartLine.Name = "snapshotListStartLine";
             this.snapshotListStartLine.Size = new System.Drawing.Size(155, 6);
+            this.snapshotListStartLine.Visible = m_snapshots.Count > 0;
             // 
             // clearSnapshotsToolStripMenuItem
             // 
