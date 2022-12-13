@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("WindowsLayoutSnapshot")]
+[assembly: AssemblyTitle("WindowsLayoutSnapshot by LeStudio")]
 [assembly: AssemblyDescription("Windows app to remember + restore window positions")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("WindowsLayoutSnapshot")]
-[assembly: AssemblyCopyright("public domain ⓪ 2012-2018")]
+[assembly: AssemblyProduct("WindowsLayoutSnapshot by LeStudio")]
+[assembly: AssemblyCopyright("public domain ⓪ 2012-2022")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
