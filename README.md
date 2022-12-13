@@ -1,28 +1,27 @@
-WindowsLayoutSnapshot
-=====================
+# WindowsLayoutSnapshot (LeStudio Version)
 
-Ever switch monitor configs on your laptop and all of your windows are squished down in size and in the wrong position?  Ever unplug from docking station with multiple monitors to go to a meeting? Ever want to minimize all windows but save their layouts and min-max'ed states for later? 
+## English
+This software allow you to save your applications dispositions, sizes and on which displays they are. 
 
-WindowsLayoutSnapshot is a windows app to remember and restore window positions.
+Features : 
+- Save cross restarts snapshots
+- Multiple Displays compatible
+- Right click on snapshot, remove it
+- English and French automatic translation.
 
-You can download the binary from the <a href="https://github.com/lapo-luchini/WindowsLayoutSnapshot/releases/latest">release page</a>.
-There's no installer; you can just put it in your Startup folder.
+## French
+Ce logiciel vous permet de sauvegarder la disposition, la taille de vos logiciels ainsi que l'écran en question.
 
-The app takes a "snapshot" of your windows layouts every thirty minutes.  You can see the list of snapshots when you click on the tray menu icon.
+Fonctionnalités :
+- Sauvegarde persitante
+- Compatible multi-écrans
+- Click droit sur les sauvegardes, le supprime
+- Traduction automatique Français / Anglais.
 
+## Original Credits
+All credits are for [lapo-luchini/WindowsLayoutSnapshot](http://https://github.com/lapo-luchini/WindowsLayoutSnapshot "lapo-luchini/WindowsLayoutSnapshot") & [adamsmith/WindowsLayoutSnapshot](https://github.com/adamsmith/WindowsLayoutSnapshot "adamsmith/WindowsLayoutSnapshot").
 
-#### Tips
-* When there are many stored snapshots, all very recent ones are shown, plus more spaced-out but distant past snapshots.
-* Automatically taken snapshots are shown in normal text.  Manually taken snapshots (`Take Snapshot`) command are shown in **bold**.
-* As you mouse over each snapshot, it is restored, so it's easy to find the layout you want.
-* Snapshots keep track of, and restore, the "normal size" of windows even if they're currently minimized or maximized.
-* This app makes sure all windows fit inside a currently-visible display when restoring snapshots.  Because of that, if you ever have a window that's off-screen because of a bug in other software, just restore the "(Just now)" snapshot.
-* Snapshots are not stored across app instances (or, thus, restarts).
+Projects for https://lestudio.qlaffont.com
 
-
-#### Screenshot
-<img src="https://raw.github.com/adamsmith/WindowsLayoutSnapshot/master/screenshot.png" />
-
-
-#### License
+## License
 This app and its source code are released into the public domain.
