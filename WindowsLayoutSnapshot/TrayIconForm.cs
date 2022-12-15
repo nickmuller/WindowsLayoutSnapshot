@@ -240,6 +240,7 @@ namespace WindowsLayoutSnapshot {
                     }
                 }
                 menuItem.MouseDown += onMouseDown;
+                menuItem.Click += onRestore;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
