@@ -395,7 +395,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) {
-            Process.Start("https://github.com/adamsmith/WindowsLayoutSnapshot");
+            Process.Start("https://github.com/nickmuller/WindowsLayoutSnapshot");
         }
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {
