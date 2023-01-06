@@ -41,7 +41,7 @@ namespace WindowsLayoutSnapshot {
             // 
             this.trayIcon.ContextMenuStrip = this.trayMenu;
             this.trayIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("trayIcon.Icon")));
-            this.trayIcon.Text = "Window Layout Snapshot by LeStudio";
+            this.trayIcon.Text = "Window Layout Snapshot";
             this.trayIcon.Visible = true;
             this.trayIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.trayIcon_MouseClick);
             // 

@@ -1,27 +1,20 @@
-# WindowsLayoutSnapshot (LeStudio Version)
+# WindowsLayoutSnapshot
 
-## English
-This software allow you to save your applications dispositions, sizes and on which displays they are. 
+Ever switch monitor configs on your laptop and all of your windows are squished down in size and in the wrong position? Ever want to minimize all windows but save their layouts and min-max'ed states for later?
 
-Features : 
-- Save cross restarts snapshots
-- Multiple Displays compatible
-- Right click on snapshot, remove it
-- English and French automatic translation.
+WindowsLayoutSnapshot is a windows app to remember and restore window positions. You can see the list of snapshots when you click on the tray menu icon. Left click to restore the snapshot, right click to delete.
 
-## French
-Ce logiciel vous permet de sauvegarder la disposition, la taille de vos logiciels ainsi que l'écran en question.
 
-Fonctionnalités :
-- Sauvegarde persitante
-- Compatible multi-écrans
-- Click droit sur les sauvegardes, le supprime
-- Traduction automatique Français / Anglais.
+#### Features
+- Automatically taken snapshots are shown in normal text. Manually taken snapshots (`Take Snapshot`) command are shown in **bold**.
+- Snapshots are stored across app restarts.
+- Snapshots support multiple windows of the same application (like Chrome instances).
+- The app takes a "snapshot" of your windows layout before every screen lock.
 
-## Original Credits
-All credits are for [lapo-luchini/WindowsLayoutSnapshot](http://https://github.com/lapo-luchini/WindowsLayoutSnapshot "lapo-luchini/WindowsLayoutSnapshot") & [adamsmith/WindowsLayoutSnapshot](https://github.com/adamsmith/WindowsLayoutSnapshot "adamsmith/WindowsLayoutSnapshot").
 
-Projects for https://lestudio.qlaffont.com
+#### Original Credits
+All credits are for [qlaffont/WindowsLayoutSnapshot](https://github.com/qlaffont/WindowsLayoutSnapshot "qlaffont/WindowsLayoutSnapshot") & [adamsmith/WindowsLayoutSnapshot](https://github.com/adamsmith/WindowsLayoutSnapshot "adamsmith/WindowsLayoutSnapshot").
 
-## License
+
+#### License
 This app and its source code are released into the public domain.

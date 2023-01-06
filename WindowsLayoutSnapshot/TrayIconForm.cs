@@ -108,7 +108,7 @@ namespace WindowsLayoutSnapshot {
 
             void valueTextChanged(object sender, EventArgs e)
             {
-                if(textBox.Text.Length >= 3)
+                if(textBox.Text.Length >= 1)
                 {
                     confirmation.Enabled = true;
                 }
