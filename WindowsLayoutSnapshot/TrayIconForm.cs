@@ -1,7 +1,6 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -11,8 +10,8 @@ using System.Windows.Forms;
 using static WindowsLayoutSnapshot.Native;
 using static WindowsLayoutSnapshot.Snapshot;
 using System.Resources;
-using System.Globalization;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace WindowsLayoutSnapshot {
 
@@ -29,44 +28,54 @@ namespace WindowsLayoutSnapshot {
 
         private static ResourceManager _rm;
 
-        static void LangHelper(string lang)
+        private static void LangHelper(string lang)
         {
-            if (lang.Contains("fr"))
-            {
-                _rm = new ResourceManager("WindowsLayoutSnapshot.Language.fr", Assembly.GetExecutingAssembly());
-            }else
-            {
-                _rm = new ResourceManager("WindowsLayoutSnapshot.Language.en", Assembly.GetExecutingAssembly());
-            }
+            _rm = lang.Contains("fr")
+                ? new ResourceManager("WindowsLayoutSnapshot.Language.fr", Assembly.GetExecutingAssembly())
+                : new ResourceManager("WindowsLayoutSnapshot.Language.en", Assembly.GetExecutingAssembly());
         }
 
-        public static string getTrad(string name)
+        public static string GetTrad(string name)
         {
             return _rm.GetString(name);
         }
-
 
         public TrayIconForm() {
             Debug.WriteLine(Thread.CurrentThread.CurrentCulture.Name);
             LangHelper(Thread.CurrentThread.CurrentCulture.Name);
             InitializeComponent();
             Visible = false;
+            me = trayMenu;
 
             m_snapshotTimer.Interval = (int)TimeSpan.FromMinutes(20).TotalMilliseconds;
             m_snapshotTimer.Tick += snapshotTimer_Tick;
             m_snapshotTimer.Enabled = false;
 
-            me = trayMenu;
-            if (WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations != null && WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations.Length > 0)
+            SystemEvents.SessionSwitch += SystemEventsOnSessionSwitch;
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.savedConfigurations))
             {
                 Debug.WriteLine("initial config");
-                var jsonOBJ = JsonConvert.DeserializeObject<string[]>(WindowsLayoutSnapshot.Properties.Settings.Default.savedConfigurations);
+                var jsonObj = JsonConvert.DeserializeObject<string[]>(Properties.Settings.Default.savedConfigurations);
 
-                foreach (var str in jsonOBJ)
+                foreach (var str in jsonObj)
                 {
                     var item = JsonConvert.DeserializeObject<SnapshotBackJSON>(str);
                     TakeSnapshot(true, item.name, item.processList);
                 }
+            }
+        }
+
+        private void SystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs e)
+        {
+            if (e.Reason == SessionSwitchReason.SessionLock)
+            {
+                TakeSnapshot(false);
+            }
+            else if (e.Reason == SessionSwitchReason.SessionUnlock)
+            {
+                // do not restore automatically yet...
+                //_snapshots.Last().Restore();
             }
         }
 
@@ -114,14 +123,18 @@ namespace WindowsLayoutSnapshot {
             return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
         }
 
-        private void TakeSnapshot(bool userInitiated) {
-            var snapshotName = ShowDialog(getTrad("snapshotName"), getTrad("snapshotDescription"));
+        private void TakeSnapshot(bool userInitiated)
+        {
+            var snapshotName = string.Empty;
 
-            if(snapshotName.Length > 0)
-            {
-                m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName));
-                UpdateRestoreChoicesInMenu();
-            }
+            if (userInitiated)
+                snapshotName = ShowDialog(GetTrad("snapshotName"), GetTrad("snapshotDescription"));
+
+            m_snapshots.Add(snapshotName.Length > 0
+                ? Snapshot.TakeSnapshot(userInitiated, snapshotName)
+                : Snapshot.TakeSnapshot(userInitiated));
+
+            UpdateRestoreChoicesInMenu();
         }
 
         private void TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
@@ -187,7 +200,7 @@ namespace WindowsLayoutSnapshot {
 
             foreach (var snapshot in m_snapshots)
             {
-                dataToSave.Add(snapshot.getJSON());
+                dataToSave.Add(snapshot.GetJson());
             }
 
             var stringToSave = JsonConvert.SerializeObject(dataToSave);
@@ -221,26 +234,19 @@ namespace WindowsLayoutSnapshot {
             foreach (var snapshot in snapshotsOldestFirst) {
                 var menuItem = new RightImageToolStripMenuItem(snapshot.GetDisplayString());
                 menuItem.Tag = snapshot;
-                void onRestore(object sender, EventArgs e)
-                { // ignore extra params
-                  // first, restore the window rectangles and normal/maximized/minimized states
-                    MessageBox.Show(getTrad("warningDesc"), getTrad("warningTitle"));
-
-                    snapshot.Restore(sender, e);
-                    
-                    MessageBox.Show(getTrad("confirmDesc"), getTrad("warningTitle"));
-                }
+                menuItem.Click += snapshot.Restore;
                 void onMouseDown(object sender, MouseEventArgs e)
                 {
-                    if(e.Button == MouseButtons.Right)
+                    if (e.Button == MouseButtons.Right)
                     {
-                        //Remove this snapshot
-                        m_snapshots.Remove(snapshot);
-                        UpdateRestoreChoicesInMenu();
+                        if (MessageBox.Show($@"{snapshot.snapshotName} verwijderen?", @"Verwijder snapshot", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                        {
+                            m_snapshots.Remove(snapshot);
+                            UpdateRestoreChoicesInMenu();
+                        }
                     }
                 }
                 menuItem.MouseDown += onMouseDown;
-                menuItem.Click += onRestore;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
@@ -389,7 +395,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e) {
-            System.Diagnostics.Process.Start("https://lestudio.qlaffont.com");
+            Process.Start("https://github.com/adamsmith/WindowsLayoutSnapshot");
         }
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {

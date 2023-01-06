@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Diagnostics;
 using static WindowsLayoutSnapshot.Native;
@@ -105,10 +103,10 @@ namespace WindowsLayoutSnapshot
 
 #if DEBUG
             // For debugging purpose, output window title with handle
-            int textLength = 256;
-            System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
-            int a = GetWindowText(hwnd, outText, outText.Capacity);
-            Debug.WriteLine(hwnd + " " + win.position + " " + outText);
+            const int textLength = 256;
+            var outText = new System.Text.StringBuilder(textLength + 1);
+            GetWindowText(hwnd, outText, outText.Capacity);
+            Debug.WriteLine(hwnd + " " + outText);
 #endif
 
             return true;
@@ -147,150 +145,42 @@ namespace WindowsLayoutSnapshot
             }
         }
 
-        internal void Restore(object sender, EventArgs e) { // ignore extra params
-                                                            // first, restore the window rectangles and normal/maximized/minimized states
-            foreach (var placement in m_infos) {
-
+        internal void Restore(object sender, EventArgs e) // ignore extra params
+        {
+            // first, restore the window rectangles and normal/maximized/minimized states
+            foreach (var placement in m_infos)
+            {
                 var processId = placement.Key;
-                var processPath = placement.Value.processPath;
 
-                // If PID is not existing try to start process
                 try
                 {
-                    uint pid = 0;
-                    GetWindowThreadProcessId((IntPtr)processId, out pid);
-                    Process proc = Process.GetProcessById((int)pid);
+                    GetWindowThreadProcessId((IntPtr)processId, out var pid);
+                    var proc = Process.GetProcessById((int)pid);
                     proc.MainModule.FileName.ToString();
                 }
                 catch
                 {
-                    try
-                    {
-                        var processFound = false;
-
-                        // Check if process path is already started
-                        foreach (var item in Process.GetProcesses())
-                        {
-                           try
-                            {
-                                if (item.MainModule.FileName.ToString() == processPath && processFound == false)
-                                {
-                                    Debug.WriteLine("Existing process");
-                                    int count = 0;
-                                    while (count < 6)
-                                    {
-                                        var process = item;
-                                        process.Refresh();
-                                        processId = (int)process.MainWindowHandle.ToInt64();
-                                        if(processId == 0)
-                                        {
-                                            System.Threading.Thread.Sleep(250);
-                                            Debug.WriteLine("Count =" + count);
-                                            count++;
-                                        }else
-                                        {
-                                            processFound = true;
-                                            count = 6;
-                                        }
-                                    }
-                                    if (processFound)
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                                // Don't trigger an error if access denied
-                            }
-                        }
-
-                        if (processFound == false)
-                        {
-                            Debug.WriteLine("New process");
-                            // Start process because app can't be started
-                            var process = Process.Start(processPath);
-                            int count = 0;
-                            while (count < 12)
-                            {
-                                process.Refresh();
-                                processId = (int)process.MainWindowHandle.ToInt64();
-                                if (processId == 0)
-                                {
-                                    System.Threading.Thread.Sleep(250);
-                                    Debug.WriteLine("New Count =" + count);
-                                    count++;
-                                }
-                                else
-                                {
-                                    processFound = true;
-                                    count = 12;
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception errorToCheck)
-                    {
-                        Debug.WriteLine(errorToCheck);
-                        // Don't trigger an error if app is not existing anymore
-                    }
+                    // Skip process if PID does not exist
+                    continue;
                 }
 
-
-                // make sure window will be inside a monitor
-                Rectangle newpos = GetRectInsideNearestMonitor(placement.Value);
-                Debug.WriteLine(newpos);
-                try
+                if (!SetWindowPlacement((IntPtr)processId, ref placement.Value.windowPlacement))
                 {
-                    if (!SetWindowPos((IntPtr)processId, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
-                    {
-                        var err = GetLastError();
-                        Debug.WriteLine("Can't move window " + placement.Key + ": Error" + GetLastError());
-                    }else
-                    {
-                        Debug.WriteLine(processId);
-                    }
-                }
-                catch(Exception errrr)
-                {
-                    Debug.WriteLine(placement.Key);
-                    Debug.WriteLine(errrr);
+                    var err = GetLastError();
+                    throw new Exception($"SetWindowPlacement of processId {processId} with title '{placement.Key}' failed with error: {err}");
                 }
             }
-
 
             // now update the z-orders
             m_windowsBackToTop = m_windowsBackToTop.FindAll(IsWindowVisible);
-            IntPtr positionStructure = BeginDeferWindowPos(m_windowsBackToTop.Count);
-            for (int i = 0; i < m_windowsBackToTop.Count; i++) {
-                positionStructure = DeferWindowPos(positionStructure, m_windowsBackToTop[i], i == 0 ? IntPtr.Zero : m_windowsBackToTop[i - 1],
-                    0, 0, 0, 0, DeferWindowPosCommands.SWP_NOMOVE | DeferWindowPosCommands.SWP_NOSIZE | DeferWindowPosCommands.SWP_NOACTIVATE);
+            var positionStructure = BeginDeferWindowPos(m_windowsBackToTop.Count);
+            for (var i = 0; i < m_windowsBackToTop.Count; i++)
+            {
+                positionStructure = DeferWindowPos(positionStructure, m_windowsBackToTop[i],
+                    i == 0 ? IntPtr.Zero : m_windowsBackToTop[i - 1], 0, 0, 0, 0,
+                    DeferWindowPosCommands.SWP_NOMOVE | DeferWindowPosCommands.SWP_NOSIZE | DeferWindowPosCommands.SWP_NOACTIVATE);
             }
             EndDeferWindowPos(positionStructure);
-        }
-
-        private static Rectangle GetRectInsideNearestMonitor(WinInfo win) {
-            Rectangle real = win.position;
-            Rectangle rect = win.visible;
-            Rectangle monitorRect = Screen.GetWorkingArea(rect); // use workspace coordinates
-            Rectangle y = new Rectangle(
-                Math.Max(monitorRect.Left, Math.Min(monitorRect.Right - rect.Width, rect.Left)),
-                Math.Max(monitorRect.Top, Math.Min(monitorRect.Bottom - rect.Height, rect.Top)),
-                Math.Min(monitorRect.Width, rect.Width),
-                Math.Min(monitorRect.Height, rect.Height)
-            );
-            if (rect != real) // support different real and visible position
-                y = new Rectangle(
-                    y.Left - rect.Left + real.Left,
-                    y.Top - rect.Top + real.Top,
-                    y.Width - rect.Width + real.Width,
-                    y.Height - rect.Height + real.Height
-                );
-#if DEBUG
-            if (y != real)
-                Debug.WriteLine("Moving " + real + "→" + y + " in monitor " + monitorRect);
-#endif
-            return y;
         }
 
         private static bool IsAltTabWindow(IntPtr hwnd) {
@@ -318,10 +208,8 @@ namespace WindowsLayoutSnapshot
         }
 
         public class WinInfo {
-            public Rectangle position; // real window border, we use this to move it
-            public Rectangle visible; // visible window borders, we use this to force inside a screen
             public string title;
-            public string processPath;
+            public WINDOWPLACEMENT windowPlacement;
         }
 
         public class SnapshotJSON
@@ -337,46 +225,35 @@ namespace WindowsLayoutSnapshot
         }
 
         private static WinInfo GetWindowInfo(IntPtr hwnd) {
-            WinInfo win = new WinInfo();
-            RECT pos;
-            if (!GetWindowRect(hwnd, out pos))
-                throw new Exception("Error getting window rectangle");
-            win.position = win.visible = pos.ToRectangle();
-            if (Environment.OSVersion.Version.Major >= 6)
-                if (DwmGetWindowAttribute(hwnd, 9 /*DwmwaExtendedFrameBounds*/, out pos, Marshal.SizeOf(typeof(Native.RECT))) == 0)
-                    win.visible = pos.ToRectangle();
+            var win = new WinInfo();
 
+            if (GetWindowPlacement(hwnd, out var windowPlacement))
+            {
+                win.windowPlacement = windowPlacement;
+            }
+            else
+            {
+                var err = GetLastError();
+                throw new Exception($"GetWindowPlacement of hwnd {hwnd} failed with error: {err}");
+            }
+            
             // Get process title
-            int textLength = 256;
-            System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
-            int a = GetWindowText(hwnd, outText, outText.Capacity);
+            const int textLength = 256;
+            var outText = new System.Text.StringBuilder(textLength + 1);
+            GetWindowText(hwnd, outText, outText.Capacity);
             win.title = outText.ToString();
-
-            // Get process path
-            try
-            {
-                uint pid = 0;
-                GetWindowThreadProcessId(hwnd, out pid);
-                Process proc = Process.GetProcessById((int)pid); //Gets the process by ID.
-                win.processPath = proc.MainModule.FileName.ToString();    //Returns the path. 
-            }
-            catch
-            {
-                win.processPath = null;
-            }
-
+            
             return win;
         }
 
-        public string getJSON() 
+        public string GetJson() 
         {
-            string jsonString = JsonConvert.SerializeObject(this.m_infos);
-
-            SnapshotJSON snapshotJSON = new SnapshotJSON();
-            snapshotJSON.name = this.GetDisplayString();
-            snapshotJSON.processList = this.m_infos;
-
-            return JsonConvert.SerializeObject(snapshotJSON);
+            var snapshotJson = new SnapshotJSON
+            {
+                name = GetDisplayString(),
+                processList = m_infos
+            };
+            return JsonConvert.SerializeObject(snapshotJson);
         }
     }
 }

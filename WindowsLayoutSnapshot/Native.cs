@@ -99,7 +99,23 @@ namespace WindowsLayoutSnapshot {
 
         [DllImport("user32.dll", EntryPoint = "SetWindowPos")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int Y, int cx, int cy, int wFlags);
+        internal static extern bool SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int X, int Y, int cx, int cy, uint wFlags);
+
+        internal static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        internal static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        internal static readonly IntPtr HWND_TOP = new IntPtr(0);
+        internal static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
+        internal const uint SWP_NOSIZE = 0x0001;
+        internal const uint SWP_NOMOVE = 0x0002;
+        internal const uint SWP_NOZORDER = 0x0004;
+        internal const uint SWP_NOREDRAW = 0x0008;
+        internal const uint SWP_NOACTIVATE = 0x0010;
+        internal const uint SWP_FRAMECHANGED = 0x0020; /* The frame changed: send WM_NCCALCSIZE */
+        internal const uint SWP_SHOWWINDOW = 0x0040;
+        internal const uint SWP_HIDEWINDOW = 0x0080;
+        internal const uint SWP_NOCOPYBITS = 0x0100;
+        internal const uint SWP_NOOWNERZORDER = 0x0200; /* Don't do owner Z ordering */
+        internal const uint SWP_NOSENDCHANGING = 0x0400; /* Don't send WM_WINDOWPOSCHANGING */
 
         [DllImport(@"dwmapi.dll")]
         internal static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out RECT pvAttribute, int cbAttribute);
@@ -130,22 +146,26 @@ namespace WindowsLayoutSnapshot {
         public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct POINT {
+        public struct POINT
+        {
             public int X;
             public int Y;
 
-            public POINT(int x, int y) {
+            public POINT(int x, int y)
+            {
                 this.X = x;
                 this.Y = y;
             }
 
             public POINT(System.Drawing.Point pt) : this(pt.X, pt.Y) { }
 
-            public static implicit operator System.Drawing.Point(POINT p) {
+            public static implicit operator System.Drawing.Point(POINT p)
+            {
                 return new System.Drawing.Point(p.X, p.Y);
             }
 
-            public static implicit operator POINT(System.Drawing.Point p) {
+            public static implicit operator POINT(System.Drawing.Point p)
+            {
                 return new POINT(p.X, p.Y);
             }
         }
@@ -160,5 +180,57 @@ namespace WindowsLayoutSnapshot {
             MONITOR_DEFAULTTONEAREST = 0x00000002
         }
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+        [DllImport("user32.dll")]
+        internal static extern uint GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+        [DllImport("user32.dll", PreserveSig = true)]
+        internal static extern void SetWindowLong(IntPtr hWnd, int nIndex, uint dwNewLong);
+
+        internal const int GWL_STYLE = -16;
+        internal const int GWL_EXSTYLE = -20;
+
+        internal const uint WS_MAXIMIZEBOX = 0x00010000;
+        internal const uint WS_MINIMIZEBOX = 0x00020000;
+
+        internal const uint WS_EX_DLGMODALFRAME = 0x00000001;
+
+        [DllImport("user32.dll")]
+        internal static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+        [DllImport("user32.dll")]
+        internal static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct WINDOWPLACEMENT
+        {
+            public uint length;
+            public uint flags;
+            public ShowWindowCommand showCmd;
+            public Point ptMinPosition;
+            public Point ptMaxPosition;
+            public Rectangle rcNormalPosition;
+        }
+
+        internal const uint WPF_SETMINPOSITION = 0x0001;
+        internal const uint WPF_RESTORETOMAXIMIZED = 0x0002;
+        internal const uint WPF_ASYNCWINDOWPLACEMENT = 0x0004;
+
+        public enum ShowWindowCommand
+        {
+            Hide = 0,
+            ShowNormal = 1,
+            ShowMinimized = 2,
+            ShowMaximized = 3,
+            ShowNoActivate = 4,
+            Show = 5,
+            Minimize = 6,
+            ShowMinNoActive = 7,
+            ShowNA = 8,
+            Restore = 9,
+            ShowDefault = 10,
+            ForceMinimize = 11,
+        }
     }
 }

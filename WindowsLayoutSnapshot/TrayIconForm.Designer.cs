@@ -62,14 +62,14 @@ namespace WindowsLayoutSnapshot {
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
             this.quitToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.quitToolStripMenuItem.Text = getTrad("quit");
+            this.quitToolStripMenuItem.Text = GetTrad("quit");
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.aboutToolStripMenuItem.Text = getTrad("about");
+            this.aboutToolStripMenuItem.Text = GetTrad("about");
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // snapshotListEndLine
@@ -95,14 +95,14 @@ namespace WindowsLayoutSnapshot {
             // 
             this.clearSnapshotsToolStripMenuItem.Name = "clearSnapshotsToolStripMenuItem";
             this.clearSnapshotsToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.clearSnapshotsToolStripMenuItem.Text = getTrad("clear");
+            this.clearSnapshotsToolStripMenuItem.Text = GetTrad("clear");
             this.clearSnapshotsToolStripMenuItem.Click += new System.EventHandler(this.clearSnapshotsToolStripMenuItem_Click);
             // 
             // snapshotToolStripMenuItem
             // 
             this.snapshotToolStripMenuItem.Name = "snapshotToolStripMenuItem";
             this.snapshotToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.snapshotToolStripMenuItem.Text = getTrad("save");
+            this.snapshotToolStripMenuItem.Text = GetTrad("save");
             this.snapshotToolStripMenuItem.Click += new System.EventHandler(this.snapshotToolStripMenuItem_Click);
             // 
             // TrayIconForm
