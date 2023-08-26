@@ -1,19 +1,24 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using static WindowsLayoutSnapshot.Native;
-using Newtonsoft.Json;
 
 namespace WindowsLayoutSnapshot
 {
 
-    internal class Snapshot {
+    internal class Snapshot
+    {
 
         private Dictionary<int, WinInfo> m_infos = new Dictionary<int, WinInfo>();
         private List<IntPtr> m_windowsBackToTop = new List<IntPtr>();
 
-        private Snapshot(bool userInitiated) {
+        private Snapshot(bool userInitiated)
+        {
 #if DEBUG
             Debug.WriteLine("*** NEW SNAPSHOT ***");
 #endif
@@ -75,7 +80,8 @@ namespace WindowsLayoutSnapshot
             NumMonitors = pixels.Count;
         }
 
-        internal static Snapshot TakeSnapshot(bool userInitiated) {
+        internal static Snapshot TakeSnapshot(bool userInitiated)
+        {
             return new Snapshot(userInitiated);
         }
 
@@ -84,12 +90,13 @@ namespace WindowsLayoutSnapshot
             return new Snapshot(userInitiated, snapshotName);
         }
 
-        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo>  processList)
+        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
         {
             return new Snapshot(userInitiated, snapshotName, processList);
         }
 
-        private bool EvalWindow(int hwndInt, int lParam) {
+        private bool EvalWindow(int hwndInt, int lParam)
+        {
             var hwnd = new IntPtr(hwndInt);
 
             if (!IsAltTabWindow(hwnd))
@@ -118,25 +125,31 @@ namespace WindowsLayoutSnapshot
         internal long[] MonitorPixelCounts { get; private set; }
         internal int NumMonitors { get; private set; }
 
-        public string GetDisplayString() {
+        public string GetDisplayString()
+        {
             DateTime dt = TimeTaken.ToLocalTime();
             return snapshotName != null ? snapshotName : dt.ToString("M") + ", " + dt.ToString("T");
         }
 
-        internal TimeSpan Age {
+        internal TimeSpan Age
+        {
             get { return DateTime.UtcNow.Subtract(TimeTaken); }
         }
 
-        internal void RestoreAndPreserveMenu(object sender, EventArgs e) { // ignore extra params
+        internal void RestoreAndPreserveMenu(object sender, EventArgs e)
+        {
             // We save and restore the current foreground window because it's our tray menu
             // I couldn't find a way to get this handle straight from the tray menu's properties;
             //   the ContextMenuStrip.Handle isn't the right one, so I'm using win32
             // More info RE the restore is below, where we do it
             var currentForegroundWindow = GetForegroundWindow();
 
-            try {
+            try
+            {
                 Restore(sender, e);
-            } finally {
+            }
+            finally
+            {
                 // A combination of SetForegroundWindow + SetWindowPos (via set_Visible) seems to be needed
                 // This was determined by trying a bunch of stuff
                 // This prevents the tray menu from closing, and makes sure it's still on top
@@ -145,29 +158,27 @@ namespace WindowsLayoutSnapshot
             }
         }
 
-        internal void Restore(object sender, EventArgs e) // ignore extra params
+        internal void Restore(object sender, EventArgs e)
         {
+            var processes = Process.GetProcesses();
+
             // first, restore the window rectangles and normal/maximized/minimized states
             foreach (var placement in m_infos)
             {
-                var processId = placement.Key;
+                var windowHandle = placement.Key;
+                GetWindowThreadProcessId((IntPtr)windowHandle, out var processId);
 
-                try
-                {
-                    GetWindowThreadProcessId((IntPtr)processId, out var pid);
-                    var proc = Process.GetProcessById((int)pid);
-                    proc.MainModule.FileName.ToString();
-                }
-                catch
-                {
-                    // Skip process if PID does not exist
+                var handleNotValid = processId == 0;
+                if (handleNotValid || !processes.Any(p => p.Id == processId))
                     continue;
-                }
 
-                if (!SetWindowPlacement((IntPtr)processId, ref placement.Value.windowPlacement))
+                if (!SetWindowPlacement((IntPtr)windowHandle, ref placement.Value.windowPlacement))
                 {
-                    var err = GetLastError();
-                    throw new Exception($"SetWindowPlacement of processId {processId} with title '{placement.Key}' failed with error: {err}");
+                    var ex = new Win32Exception(Marshal.GetLastWin32Error());
+                    var process = processes.Single(p => p.Id == processId);
+                    throw new Exception($"SetWindowPlacement of window with " +
+                        $"handle {windowHandle} and module name '{process.MainModule.ModuleName}' " +
+                        $"failed with error: {ex.NativeErrorCode} ({ex.Message})");
                 }
             }
 
@@ -183,7 +194,8 @@ namespace WindowsLayoutSnapshot
             EndDeferWindowPos(positionStructure);
         }
 
-        private static bool IsAltTabWindow(IntPtr hwnd) {
+        private static bool IsAltTabWindow(IntPtr hwnd)
+        {
             if (!IsWindowVisible(hwnd))
                 return false;
 
@@ -195,7 +207,8 @@ namespace WindowsLayoutSnapshot
 
             IntPtr hwndTry = GetAncestor(hwnd, GetAncestor_Flags.GetRootOwner);
             IntPtr hwndWalk = IntPtr.Zero;
-            while (hwndTry != hwndWalk) {
+            while (hwndTry != hwndWalk)
+            {
                 hwndWalk = hwndTry;
                 hwndTry = GetLastActivePopup(hwndWalk);
                 if (IsWindowVisible(hwndTry))
@@ -207,14 +220,15 @@ namespace WindowsLayoutSnapshot
             return true;
         }
 
-        public class WinInfo {
+        public class WinInfo
+        {
             public string title;
             public WINDOWPLACEMENT windowPlacement;
         }
 
         public class SnapshotJSON
         {
-            public string name; 
+            public string name;
             public Dictionary<int, WinInfo> processList;
         }
 
@@ -224,7 +238,8 @@ namespace WindowsLayoutSnapshot
             public Dictionary<int, WinInfo> processList;
         }
 
-        private static WinInfo GetWindowInfo(IntPtr hwnd) {
+        private static WinInfo GetWindowInfo(IntPtr hwnd)
+        {
             var win = new WinInfo();
 
             if (GetWindowPlacement(hwnd, out var windowPlacement))
@@ -233,20 +248,20 @@ namespace WindowsLayoutSnapshot
             }
             else
             {
-                var err = GetLastError();
-                throw new Exception($"GetWindowPlacement of hwnd {hwnd} failed with error: {err}");
+                var ex = new Win32Exception(Marshal.GetLastWin32Error());
+                throw new Exception($"GetWindowPlacement of hwnd {hwnd} failed with error: {ex.NativeErrorCode} ({ex.Message})");
             }
-            
+
             // Get process title
             const int textLength = 256;
             var outText = new System.Text.StringBuilder(textLength + 1);
             GetWindowText(hwnd, outText, outText.Capacity);
             win.title = outText.ToString();
-            
+
             return win;
         }
 
-        public string GetJson() 
+        public string GetJson()
         {
             var snapshotJson = new SnapshotJSON
             {
