@@ -17,6 +17,7 @@ namespace WindowsLayoutSnapshot {
         internal static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy,
             [MarshalAs(UnmanagedType.U4)]DeferWindowPosCommands uFlags);
 
+        [Flags]
         internal enum DeferWindowPosCommands : uint {
             SWP_DRAWFRAME = 0x0020,
             SWP_FRAMECHANGED = 0x0020,
@@ -85,7 +86,7 @@ namespace WindowsLayoutSnapshot {
 
         [DllImport("user32.dll")]
         internal static extern int EnumWindows(EnumWindowsProc ewp, int lParam);
-        internal delegate bool EnumWindowsProc(int hWnd, int lParam);
+        internal delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         internal static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
@@ -177,6 +178,20 @@ namespace WindowsLayoutSnapshot {
             MONITOR_DEFAULTTONEAREST = 0x00000002
         }
 
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr GetWindow(IntPtr hWnd, GetWindowCmd uCmd);
+
+        internal enum GetWindowCmd : uint
+        {
+            GW_HWNDFIRST = 0,
+            GW_HWNDLAST = 1,
+            GW_HWNDNEXT = 2,
+            GW_HWNDPREV = 3,
+            GW_OWNER = 4,
+            GW_CHILD = 5,
+            GW_ENABLEDPOPUP = 6
+        }
+
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         [DllImport("user32.dll")]
         internal static extern uint GetWindowLong(IntPtr hWnd, int nIndex);
@@ -196,18 +211,18 @@ namespace WindowsLayoutSnapshot {
         [DllImport("user32.dll")]
         internal static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         internal static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct WINDOWPLACEMENT
         {
-            public uint length;
-            public uint flags;
-            public ShowWindowCommand showCmd;
-            public Point ptMinPosition;
-            public Point ptMaxPosition;
-            public Rectangle rcNormalPosition;
+            public uint length { get; set; }
+            public uint flags { get; set; }
+            public ShowWindowCommand showCmd { get; set; }
+            public Point ptMinPosition { get; set; }
+            public Point ptMaxPosition { get; set; }
+            public Rectangle rcNormalPosition { get; set; }
         }
 
         internal const uint WPF_SETMINPOSITION = 0x0001;

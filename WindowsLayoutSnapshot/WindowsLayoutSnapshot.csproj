@@ -144,8 +144,8 @@
     <None Include="Resources\glyphicons_086_display.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json">
-      <Version>13.0.2</Version>
+    <PackageReference Include="System.Text.Json">
+      <Version>7.0.3</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>

@@ -1,88 +1,28 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Forms;
-using static WindowsLayoutSnapshot.Native;
-
 namespace WindowsLayoutSnapshot
 {
 
     internal class Snapshot
     {
+        private readonly List<Window> windows = new List<Window>();
+        private DateTime timeTaken;
 
-        private Dictionary<int, WinInfo> m_infos = new Dictionary<int, WinInfo>();
-        private List<IntPtr> m_windowsBackToTop = new List<IntPtr>();
-
-        private Snapshot(bool userInitiated)
-        {
-#if DEBUG
-            Debug.WriteLine("*** NEW SNAPSHOT ***");
-#endif
-            EnumWindows(EvalWindow, 0);
-
-            TimeTaken = DateTime.UtcNow;
-            UserInitiated = userInitiated;
-
-            var pixels = new List<long>();
-            foreach (var screen in Screen.AllScreens)
-                pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
-            MonitorPixelCounts = pixels.ToArray();
-            NumMonitors = pixels.Count;
-        }
-
-        private Snapshot(bool userInitiated, string snapshotName)
-        {
-#if DEBUG
-            Debug.WriteLine("*** NEW SNAPSHOT ***");
-#endif
-
-            this.snapshotName = snapshotName;
-
-            EnumWindows(EvalWindow, 0);
-
-            TimeTaken = DateTime.UtcNow;
-            UserInitiated = userInitiated;
-
-            var pixels = new List<long>();
-            foreach (var screen in Screen.AllScreens)
-                pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
-            MonitorPixelCounts = pixels.ToArray();
-            NumMonitors = pixels.Count;
-        }
-
-        private Snapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
-        {
-#if DEBUG
-            Debug.WriteLine("*** RESTORE SNAPSHOT ***");
-#endif
-
-            this.snapshotName = snapshotName;
-
-            //EnumWindows(EvalWindow, 0);
-
-            //m_infos = processList;
-            foreach (var item in processList)
-            {
-                m_infos.Add(item.Key, item.Value);
-            }
-
-            TimeTaken = DateTime.UtcNow;
-            UserInitiated = userInitiated;
-
-            var pixels = new List<long>();
-            foreach (var screen in Screen.AllScreens)
-                pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
-            MonitorPixelCounts = pixels.ToArray();
-            NumMonitors = pixels.Count;
-        }
+        internal bool UserInitiated { get; }
+        internal string SnapshotName { get; }
+        internal long[] MonitorPixelCounts { get; }
+        internal int NumMonitors { get; }
 
         internal static Snapshot TakeSnapshot(bool userInitiated)
         {
-            return new Snapshot(userInitiated);
+            return new Snapshot(userInitiated, null);
         }
 
         internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName)
@@ -90,50 +30,70 @@ namespace WindowsLayoutSnapshot
             return new Snapshot(userInitiated, snapshotName);
         }
 
-        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, Dictionary<int, WinInfo> processList)
+        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, List<WinInfo> windows)
         {
-            return new Snapshot(userInitiated, snapshotName, processList);
+            return new Snapshot(userInitiated, snapshotName, windows);
         }
 
-        private bool EvalWindow(int hwndInt, int lParam)
+        private Snapshot(bool userInitiated, string snapshotName, List<WinInfo> windows = null)
         {
-            var hwnd = new IntPtr(hwndInt);
+            UserInitiated = userInitiated;
+            SnapshotName = snapshotName;
 
-            if (!IsAltTabWindow(hwnd))
-                return true;
+            if (windows == null)
+            {
+                Native.EnumWindows(EvalWindow, 0);
+            }
+            else
+            {
+                foreach (var window in windows)
+                {
+                    windows.Add(window);
+                }
+            }
 
-            // EnumWindows returns windows in Z order from back to front
-            m_windowsBackToTop.Add(hwnd);
+            timeTaken = DateTime.UtcNow;
 
-            WinInfo win = GetWindowInfo(hwnd);
-            m_infos.Add((int)hwnd.ToInt64(), win);
+            var pixels = Screen.AllScreens.Select(s => (long)s.Bounds.Width * s.Bounds.Height).ToList();
+            MonitorPixelCounts = pixels.ToArray();
+            NumMonitors = pixels.Count;
+        }
 
-#if DEBUG
-            // For debugging purpose, output window title with handle
-            const int textLength = 256;
-            var outText = new System.Text.StringBuilder(textLength + 1);
-            GetWindowText(hwnd, outText, outText.Capacity);
-            Debug.WriteLine(hwnd + " " + outText);
-#endif
+        private bool EvalWindow(IntPtr hwnd, IntPtr lParam)
+        {
+            var processName = GetProcessName(hwnd);
+            var windowPlacement = GetWindowPlacement(hwnd);
+            var newWindow = new Window(hwnd, processName, windowPlacement);
+
+            if (newWindow.IsRestorableWindow())
+                windows.Add(newWindow);
 
             return true;
         }
 
-        internal DateTime TimeTaken { get; private set; }
-        internal bool UserInitiated { get; private set; }
-        internal string snapshotName { get; private set; }
-        internal long[] MonitorPixelCounts { get; private set; }
-        internal int NumMonitors { get; private set; }
-
-        public string GetDisplayString()
+        private static string GetProcessName(IntPtr hwnd)
         {
-            DateTime dt = TimeTaken.ToLocalTime();
-            return snapshotName != null ? snapshotName : dt.ToString("M") + ", " + dt.ToString("T");
+            Native.GetWindowThreadProcessId(hwnd, out var processId);
+
+            var handleNotValid = processId == 0;
+            if (handleNotValid)
+                return string.Empty;
+
+            var processes = Process.GetProcesses();
+            if (!processes.Any(p => p.Id == processId))
+                return string.Empty;
+
+            var process = processes.Single(p => p.Id == processId);
+            return process.ProcessName;
         }
 
-        internal TimeSpan Age
+        private Native.WINDOWPLACEMENT GetWindowPlacement(IntPtr hwnd)
         {
-            get { return DateTime.UtcNow.Subtract(TimeTaken); }
+            if (Native.GetWindowPlacement(hwnd, out var windowPlacement))
+                return windowPlacement;
+
+            var ex = new Win32Exception(Marshal.GetLastWin32Error());
+            throw new Exception($"{nameof(GetWindowPlacement)} of hwnd {hwnd} failed with error: {ex.NativeErrorCode} ({ex.Message})");
         }
 
         internal void RestoreAndPreserveMenu(object sender, EventArgs e)
@@ -142,7 +102,7 @@ namespace WindowsLayoutSnapshot
             // I couldn't find a way to get this handle straight from the tray menu's properties;
             //   the ContextMenuStrip.Handle isn't the right one, so I'm using win32
             // More info RE the restore is below, where we do it
-            var currentForegroundWindow = GetForegroundWindow();
+            var currentForegroundWindow = Native.GetForegroundWindow();
 
             try
             {
@@ -153,7 +113,7 @@ namespace WindowsLayoutSnapshot
                 // A combination of SetForegroundWindow + SetWindowPos (via set_Visible) seems to be needed
                 // This was determined by trying a bunch of stuff
                 // This prevents the tray menu from closing, and makes sure it's still on top
-                SetForegroundWindow(currentForegroundWindow);
+                Native.SetForegroundWindow(currentForegroundWindow);
                 TrayIconForm.me.Visible = true;
             }
         }
@@ -162,113 +122,74 @@ namespace WindowsLayoutSnapshot
         {
             var processes = Process.GetProcesses();
 
-            // first, restore the window rectangles and normal/maximized/minimized states
-            foreach (var placement in m_infos)
+            // first restore the window rectangles and normal/maximized/minimized states
+            foreach (var window in windows)
             {
-                var windowHandle = placement.Key;
-                GetWindowThreadProcessId((IntPtr)windowHandle, out var processId);
+                Native.GetWindowThreadProcessId(window.Handle, out var processId);
 
                 var handleNotValid = processId == 0;
                 if (handleNotValid || !processes.Any(p => p.Id == processId))
                     continue;
 
-                if (!SetWindowPlacement((IntPtr)windowHandle, ref placement.Value.windowPlacement))
+                var wp = window.WindowPlacement;
+                if (!Native.SetWindowPlacement(window.Handle, ref wp))
                 {
                     var ex = new Win32Exception(Marshal.GetLastWin32Error());
-                    var process = processes.Single(p => p.Id == processId);
-                    throw new Exception($"SetWindowPlacement of window with " +
-                        $"handle {windowHandle} and module name '{process.MainModule.ModuleName}' " +
+                    throw new Exception($"{nameof(Native.SetWindowPlacement)} of window with " +
+                        $"hwnd {window.Handle} and process name '{window.ProcessName}' " +
                         $"failed with error: {ex.NativeErrorCode} ({ex.Message})");
                 }
             }
 
-            // now update the z-orders
-            m_windowsBackToTop = m_windowsBackToTop.FindAll(IsWindowVisible);
-            var positionStructure = BeginDeferWindowPos(m_windowsBackToTop.Count);
-            for (var i = 0; i < m_windowsBackToTop.Count; i++)
+            // then update the z-orders
+            var visibleWindows = windows.Where(w => Native.IsWindowVisible(w.Handle)).ToList();
+            var positionHandle = Native.BeginDeferWindowPos(visibleWindows.Count);
+            var previousWindowHandle = IntPtr.Zero;
+            foreach (var window in visibleWindows)
             {
-                positionStructure = DeferWindowPos(positionStructure, m_windowsBackToTop[i],
-                    i == 0 ? IntPtr.Zero : m_windowsBackToTop[i - 1], 0, 0, 0, 0,
-                    DeferWindowPosCommands.SWP_NOMOVE | DeferWindowPosCommands.SWP_NOSIZE | DeferWindowPosCommands.SWP_NOACTIVATE);
+                positionHandle = Native.DeferWindowPos(positionHandle, window.Handle, previousWindowHandle, 0, 0, 0, 0,
+                    Native.DeferWindowPosCommands.SWP_NOMOVE | Native.DeferWindowPosCommands.SWP_NOSIZE |
+                    Native.DeferWindowPosCommands.SWP_NOACTIVATE);
+                previousWindowHandle = window.Handle;
             }
-            EndDeferWindowPos(positionStructure);
+            Native.EndDeferWindowPos(positionHandle);
         }
 
-        private static bool IsAltTabWindow(IntPtr hwnd)
+        [Serializable]
+        public class SnapshotJson
         {
-            if (!IsWindowVisible(hwnd))
-                return false;
-
-            IntPtr extendedStyles = GetWindowLongPtr(hwnd, (-20)); // GWL_EXSTYLE
-            if ((extendedStyles.ToInt64() & WS_EX_APPWINDOW) > 0)
-                return true;
-            if ((extendedStyles.ToInt64() & WS_EX_TOOLWINDOW) > 0)
-                return false;
-
-            IntPtr hwndTry = GetAncestor(hwnd, GetAncestor_Flags.GetRootOwner);
-            IntPtr hwndWalk = IntPtr.Zero;
-            while (hwndTry != hwndWalk)
-            {
-                hwndWalk = hwndTry;
-                hwndTry = GetLastActivePopup(hwndWalk);
-                if (IsWindowVisible(hwndTry))
-                    break;
-            }
-            if (hwndWalk != hwnd)
-                return false;
-
-            return true;
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
+            [JsonPropertyName("windows")]
+            public List<WinInfo> Windows { get; set; }
         }
 
+        [Serializable]
         public class WinInfo
         {
-            public string title;
-            public WINDOWPLACEMENT windowPlacement;
-        }
-
-        public class SnapshotJSON
-        {
-            public string name;
-            public Dictionary<int, WinInfo> processList;
-        }
-
-        public class SnapshotBackJSON
-        {
-            public string name;
-            public Dictionary<int, WinInfo> processList;
-        }
-
-        private static WinInfo GetWindowInfo(IntPtr hwnd)
-        {
-            var win = new WinInfo();
-
-            if (GetWindowPlacement(hwnd, out var windowPlacement))
-            {
-                win.windowPlacement = windowPlacement;
-            }
-            else
-            {
-                var ex = new Win32Exception(Marshal.GetLastWin32Error());
-                throw new Exception($"GetWindowPlacement of hwnd {hwnd} failed with error: {ex.NativeErrorCode} ({ex.Message})");
-            }
-
-            // Get process title
-            const int textLength = 256;
-            var outText = new System.Text.StringBuilder(textLength + 1);
-            GetWindowText(hwnd, outText, outText.Capacity);
-            win.title = outText.ToString();
-
-            return win;
+            [JsonPropertyName("windowHandle")]
+            public long WindowHandle { get; set; }
+            [JsonPropertyName("processName")]
+            public string ProcessName { get; set; }
+            [JsonPropertyName("windowPlacement")]
+            public Native.WINDOWPLACEMENT WindowPlacement { get; set; }
         }
 
         public string GetJson()
         {
-            var snapshotJson = new SnapshotJSON
+            var snapshotJson = new SnapshotJson
             {
-                name = GetDisplayString(),
-                processList = m_infos
+                Name = GetDisplayString(),
+                Windows = windows.Select(w => new WinInfo
+                {
+                    WindowHandle = w.Handle.ToInt64(),
+                    ProcessName = w.ProcessName,
+                    WindowPlacement = w.WindowPlacement
+                }).ToList()
             };
-            return JsonConvert.SerializeObject(snapshotJson);
+            return JsonSerializer.Serialize(snapshotJson);
         }
+
+        public string GetDisplayString() => SnapshotName ?? timeTaken.ToLocalTime().ToString("d MMMM, HH:mm:ss");
     }
 }
