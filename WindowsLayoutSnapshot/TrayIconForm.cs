@@ -59,12 +59,12 @@ namespace WindowsLayoutSnapshot
             if (!string.IsNullOrEmpty(Properties.Settings.Default.savedConfigurations))
             {
                 Debug.WriteLine("initial config");
-                var jsonObj = JsonSerializer.Deserialize<string[]>(Properties.Settings.Default.savedConfigurations);
+                var snapshotsJson = JsonSerializer.Deserialize<string[]>(Properties.Settings.Default.savedConfigurations);
 
-                foreach (var str in jsonObj)
+                foreach (var snapshotJson in snapshotsJson)
                 {
-                    var item = JsonSerializer.Deserialize<SnapshotJson>(str);
-                    TakeSnapshot(true, item.Name, item.Windows);
+                    var item = JsonSerializer.Deserialize<SnapshotJson>(snapshotJson);
+                    LoadSnapshot(true, item.Name, item.Windows);
                 }
             }
         }
@@ -142,9 +142,9 @@ namespace WindowsLayoutSnapshot
             UpdateRestoreChoicesInMenu();
         }
 
-        private void TakeSnapshot(bool userInitiated, string snapshotName, List<WinInfo> windows)
+        private void LoadSnapshot(bool userInitiated, string snapshotName, List<WinInfo> windows)
         {
-            m_snapshots.Add(Snapshot.TakeSnapshot(userInitiated, snapshotName, windows));
+            m_snapshots.Add(Snapshot.LoadSnapshot(userInitiated, snapshotName, windows));
             UpdateRestoreChoicesInMenu();
         }
 

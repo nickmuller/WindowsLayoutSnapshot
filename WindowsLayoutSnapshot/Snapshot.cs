@@ -30,25 +30,25 @@ namespace WindowsLayoutSnapshot
             return new Snapshot(userInitiated, snapshotName);
         }
 
-        internal static Snapshot TakeSnapshot(bool userInitiated, string snapshotName, List<WinInfo> windows)
+        internal static Snapshot LoadSnapshot(bool userInitiated, string snapshotName, List<WinInfo> snapshotWindows)
         {
-            return new Snapshot(userInitiated, snapshotName, windows);
+            return new Snapshot(userInitiated, snapshotName, snapshotWindows);
         }
 
-        private Snapshot(bool userInitiated, string snapshotName, List<WinInfo> windows = null)
+        private Snapshot(bool userInitiated, string snapshotName, List<WinInfo> snapshotWindows = null)
         {
             UserInitiated = userInitiated;
             SnapshotName = snapshotName;
 
-            if (windows == null)
+            if (snapshotWindows == null)
             {
                 Native.EnumWindows(EvalWindow, 0);
             }
             else
             {
-                foreach (var window in windows)
+                foreach (var window in snapshotWindows)
                 {
-                    windows.Add(window);
+                    windows.Add(new Window(new IntPtr(window.WindowHandle), window.ProcessName, window.WindowPlacement));
                 }
             }
 
